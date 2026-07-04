@@ -1,0 +1,11 @@
+[Unit]
+Description=Log Creater
+
+[Service]
+Type=oneshot
+User=unnamed
+WorkingDirectory=/opt/scripts
+ExecStart=/opt/scripts/cleanup.sh
+
+[Install]
+WantedBy=multi-user.target
