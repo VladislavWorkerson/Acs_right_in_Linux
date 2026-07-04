@@ -1,0 +1,14 @@
+[Unit]
+Description=Siomple-web homework
+
+[Service]
+Type=simple
+User=unnamed
+WorkingDirectory=/opt/simple-web
+ExecStart=/opt/simple-web/server.py
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi.user.target
