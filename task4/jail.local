@@ -1,0 +1,47 @@
+[DEFAULT]
+# Глобальные настройки по умолчанию
+bantime = 1h
+findtime = 10m
+maxretry = 3
+#ignoreip = 127.0.0.1/8 192.168.31.150
+#destemail = greedyrpper@yandex.ru
+#sender = greedyrpper@yandex.ru
+#action = %(action_mwl)s
+# Указываем fail2ban использовать наш кастомный сценарий
+action = iptables-custom
+
+[sshd]
+enabled = true
+port = ssh
+filter = sshd
+logpath = /var/log/auth.log
+maxretry = 3
+bantime = 1h
+findtime = 10m
+
+[nginx-http-auth]
+enabled  = true
+port     = http,https
+filter   = nginx-auth
+logpath  = /var/log/nginx/access.log
+maxretry = 10
+findtime = 1m
+bantime  = 30m
+
+[postgresql]
+enabled  = true
+port     = 5432
+filter   = postgresql
+logpath  = /var/log/postgresql/postgresql-18-main.log
+maxretry = 5
+findtime = 300
+bantime  = 7200
+
+[recidive]
+enabled  = true
+filter   = recidive
+logpath  = /var/log/fail2ban.log
+bantime  = 315360000
+findtime = 1209600
+maxretry = 3
+action = ip-blocklist
