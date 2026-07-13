@@ -1,0 +1,193 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SSH_USER="${1:-dop2}"
+JUMP_HOST="${2:-192.168.31.179}"
+SSH_PORT="${3:-2222}"
+PRIVATE_HOST="${4:-192.168.56.10}"
+PRIVATE_USER="${5:-private-user}"
+
+cat <<EOF
+============================================================
+JUMP HOST CONNECTION GUIDE
+============================================================
+
+Generated for SSH user: ${SSH_USER}
+Jump host address:      ${JUMP_HOST}
+SSH port:               ${SSH_PORT}
+
+------------------------------------------------------------
+1. WHERE TO PUT SSH CONFIG
+------------------------------------------------------------
+
+Linux/macOS:
+    ~/.ssh/config
+
+Windows PowerShell:
+    C:\\Users\\<YourUser>\\.ssh\\config
+
+If the file does not exist, create it.
+
+Recommended permissions on Linux/macOS:
+    chmod 700 ~/.ssh
+    chmod 600 ~/.ssh/config
+
+------------------------------------------------------------
+2. BASIC SSH CONFIG
+------------------------------------------------------------
+
+Add this block to your SSH config:
+
+Host jump-host
+    HostName ${JUMP_HOST}
+    User ${SSH_USER}
+    Port ${SSH_PORT}
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+    ExitOnForwardFailure yes
+
+Connect with:
+
+    ssh jump-host
+
+Without SSH config, connect with:
+
+    ssh -p ${SSH_PORT} ${SSH_USER}@${JUMP_HOST}
+
+------------------------------------------------------------
+3. LOCAL PORT FORWARDING: TEST SERVICE
+------------------------------------------------------------
+
+Example: forward local port 18080 to 127.0.0.1:9000 on the jump host.
+
+Command:
+
+    ssh -N -L 127.0.0.1:18080:127.0.0.1:9000 jump-host
+
+Then open:
+
+    http://127.0.0.1:18080
+
+Or test with:
+
+    curl http://127.0.0.1:18080
+
+On Windows PowerShell use:
+
+    curl.exe http://127.0.0.1:18080
+
+Meaning:
+
+    127.0.0.1:18080 on your computer
+        -> SSH tunnel
+        -> 127.0.0.1:9000 from the jump host side
+
+------------------------------------------------------------
+4. LOCAL PORT FORWARDING: PRIVATE NETWORK EXAMPLE
+------------------------------------------------------------
+
+Example: access a private PostgreSQL server:
+
+    private server: ${PRIVATE_HOST}:5432
+    local port:     15432
+
+Command:
+
+    ssh -N -L 127.0.0.1:15432:${PRIVATE_HOST}:5432 jump-host
+
+Then configure your local app to connect to:
+
+    Host: 127.0.0.1
+    Port: 15432
+
+Meaning:
+
+    your computer:127.0.0.1:15432
+        -> SSH tunnel
+        -> ${PRIVATE_HOST}:5432 through jump host
+
+------------------------------------------------------------
+5. SSH CONFIG WITH LOCALFORWARD
+------------------------------------------------------------
+
+You can also add this block to ~/.ssh/config:
+
+Host jump-local-test
+    HostName ${JUMP_HOST}
+    User ${SSH_USER}
+    Port ${SSH_PORT}
+    LocalForward 127.0.0.1:18080 127.0.0.1:9000
+    ExitOnForwardFailure yes
+
+Run tunnel with:
+
+    ssh -N jump-local-test
+
+------------------------------------------------------------
+6. PROXYJUMP EXAMPLE
+------------------------------------------------------------
+
+ProxyJump is used when you need SSH access to a private server
+through the jump host.
+
+Add this to ~/.ssh/config:
+
+Host private-server
+    HostName ${PRIVATE_HOST}
+    User ${PRIVATE_USER}
+    ProxyJump jump-host
+
+Then connect with:
+
+    ssh private-server
+
+Equivalent command without config:
+
+    ssh -J ${SSH_USER}@${JUMP_HOST}:${SSH_PORT} ${PRIVATE_USER}@${PRIVATE_HOST}
+
+------------------------------------------------------------
+7. TROUBLESHOOTING
+------------------------------------------------------------
+
+Verbose SSH connection:
+
+    ssh -v jump-host
+
+Very verbose SSH connection:
+
+    ssh -vvv jump-host
+
+Check if local tunnel port is listening:
+
+Linux/macOS:
+    ss -ltn | grep 18080
+
+Windows PowerShell:
+    netstat -ano | findstr 18080
+
+Common errors:
+
+1) Permission denied
+   Authentication failed. Check username, password, SSH key, or 2FA code.
+
+2) Connection refused
+   The target service is not running or target port is wrong.
+
+3) administratively prohibited
+   SSH server refused port forwarding. Check AllowTcpForwarding or PermitOpen.
+
+4) Address already in use
+   Local port is already busy. Use another local port, for example 18081.
+
+------------------------------------------------------------
+8. SECURITY NOTES
+------------------------------------------------------------
+
+- Do not share your private SSH key.
+- Do not share your 2FA QR code or secret key.
+- Keep tunnels bound to 127.0.0.1 unless you really need otherwise.
+- Close unused tunnels with Ctrl+C.
+- Use ProxyJump instead of exposing private servers directly.
+
+============================================================
+EOF
