@@ -1,0 +1,5 @@
+google.com:443
+google.com:80
+localhost:22
+localhost:2222
+localhost:9999
